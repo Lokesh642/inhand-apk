@@ -22,19 +22,32 @@ jobs:
           sudo apt install -y python3-pip git zip unzip openjdk-17-jdk
           pip install buildozer cython
 
-      - name: Accept Android SDK Licenses
+      - name: Set up Android SDK and Accept Licenses
         run: |
+          sudo mkdir -p /usr/lib/android-sdk/cmdline-tools
+          cd /usr/lib/android-sdk/cmdline-tools
+          sudo mkdir latest
+          cd latest
+          sudo wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          sudo unzip commandlinetools-linux-11076708_latest.zip
+          export ANDROID_HOME=/usr/lib/android-sdk
+          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
           yes | sdkmanager --licenses || true
           yes | sdkmanager --update || true
+          sdkmanager "platform-tools" "platforms;android-33" "build-tools;34.0.0"
 
       - name: Prepare buildozer
         run: buildozer init || true
 
-      - name: Retry build (actual compile)
-        run: buildozer android debug
+      - name: Build APK
+        run: |
+          export ANDROIDSDK=/usr/lib/android-sdk
+          export ANDROIDNDK=$ANDROIDSDK/ndk-bundle
+          export PATH=$PATH:$ANDROIDSDK/build-tools/34.0.0
+          buildozer android debug
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: inhand-calculator-apk
+          name: app-release
           path: bin/*.apk
