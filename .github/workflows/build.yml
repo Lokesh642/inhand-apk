@@ -4,72 +4,56 @@ on:
   push:
     branches: [ main ]
   pull_request:
+    branches: [ main ]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-
+    runs-on: ubuntu-22.04  # ✅ Avoids autoconf 2.72 issues
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python 3.10
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
-      - name: Install Android & system dependencies
+      - name: Install system dependencies
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y \
-            build-essential \
-            autoconf \
-            automake \
-            libtool \
-            pkg-config \
-            libffi-dev \
-            zlib1g-dev \
-            libssl-dev \
-            libncurses5-dev \
-            libsqlite3-dev \
-            libjpeg-dev \
-            libpng-dev \
-            libtiff-dev \
-            libfreetype6-dev \
-            openjdk-17-jdk \
-            zip \
-            unzip \
-            git \
-            python3-pip
-
-      - name: Verify libtool macros
-        run: |
-          ls /usr/share/aclocal/libtool.m4 || echo "⚠️ libtool.m4 missing!"
-          ls /usr/share/aclocal/lt*.m4 || true
+          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip \
+            autoconf automake libtool pkg-config
 
       - name: Install Buildozer
         run: |
-          pip install --upgrade pip
-          pip install buildozer cython virtualenv
+          pip install --upgrade pip setuptools wheel
+          pip install buildozer==1.5.0 Cython==0.29.37
+          pip install --upgrade python-for-android
 
-      - name: Cache Buildozer (to speed up rebuilds)
+      - name: Cache Buildozer global data
         uses: actions/cache@v4
         with:
-          path: .buildozer
-          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
+          path: |
+            ~/.buildozer
+          key: buildozer-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: |
+            buildozer-${{ runner.os }}-
 
-      - name: Build debug APK
+      - name: Patch libffi macros (bonus safeguard)
         run: |
-          buildozer -v android debug
-        env:
-          ANDROIDSDK: /home/runner/.buildozer/android/platform/android-sdk
-          ANDROIDNDK: /home/runner/.buildozer/android/platform/android-ndk-r25b
-          ANDROIDAPI: 34
-          ANDROIDMINAPI: 21
+          find ~/.buildozer/android/platform/python-for-android -type f -name "configure.ac" \
+            -exec sed -i 's/AC_TRY_COMPILE/AC_COMPILE_IFELSE/g' {} \; || true
+          find ~/.buildozer/android/platform/python-for-android -type f -name "configure.ac" \
+            -exec sed -i 's/AC_TRY_LINK/AC_LINK_IFELSE/g' {} \; || true
+          find ~/.buildozer/android/platform/python-for-android -type f -name "AC_TRY_RUN" \
+            -exec sed -i 's/AC_TRY_RUN/AC_RUN_IFELSE/g' {} \; || true
 
-      - name: Upload built APK
-        if: success()
+      - name: Build APK
+        run: |
+          buildozer android debug
+
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: inhand-debug-apk
+          name: MyApp-APK
           path: bin/*.apk
