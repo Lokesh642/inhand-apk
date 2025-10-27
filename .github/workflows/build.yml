@@ -1,10 +1,10 @@
-name: Build Android APK
+name: Build Android APK with Buildozer
 
 on:
   push:
     branches:
       - main
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   build:
@@ -14,44 +14,37 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          distribution: temurin
-          java-version: 17
+          python-version: "3.10"
 
-      - name: Set environment variables
+      - name: Install system dependencies
         run: |
-          echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
-          echo "PATH=$PATH:$HOME/android-sdk/cmdline-tools/latest/bin:$HOME/android-sdk/platform-tools" >> $GITHUB_ENV
+          sudo apt-get update
+          sudo apt-get install -y \
+            git zip unzip openjdk-17-jdk \
+            python3-pip python3-setuptools python3-wheel python3-venv \
+            libffi-dev libssl-dev libsqlite3-dev libjpeg-dev zlib1g-dev \
+            libfreetype6-dev liblcms2-dev libblas-dev liblapack-dev
 
-      - name: Install Android SDK Command-line Tools
+      - name: Install Buildozer and Cython
         run: |
-          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
-          cd $ANDROID_SDK_ROOT/cmdline-tools
-          wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
-          unzip -q cmdline-tools.zip
-          rm cmdline-tools.zip
-          mv cmdline-tools latest
+          python3 -m pip install --upgrade pip
+          pip install buildozer cython
 
-      - name: Install SDK packages
+      - name: Initialize Buildozer (if missing)
         run: |
-          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT --licenses
-          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT \
-            "platform-tools" \
-            "build-tools;34.0.0" \
-            "platforms;android-34" \
-            "ndk;26.1.10909125"
+          if [ ! -f buildozer.spec ]; then
+            buildozer init
+          fi
 
-      # 👇 Change this if your gradlew is inside android/
-      - name: Build APK
-        working-directory: android
+      - name: Build the APK
         run: |
-          chmod +x ./gradlew
-          ./gradlew assembleDebug
+          buildozer -v android debug
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug.apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: inhand-apk
+          path: bin/*.apk
