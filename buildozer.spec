@@ -19,7 +19,8 @@ source.main = main.py
 source.include_exts = py,png,jpg,kv,atlas
 
 # (str) Version will be extracted automatically from your main.py
-version.regex = __version__ = ['"](.*)['"]
+# version.regex = __version__ = ['"](.*)['"]
+version = 1.0.0
 
 version.filename = main.py
 
@@ -70,6 +71,7 @@ logcat = True
 
 # (bool) Automatically log in to adb devices
 adb = True
+
 
 
 
