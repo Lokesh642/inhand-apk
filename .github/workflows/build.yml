@@ -1,4 +1,4 @@
-name: Build Kivy Android APK
+name: Build Android APK
 
 on:
   push:
@@ -14,58 +14,46 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
         with:
-          python-version: '3.10'
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            openjdk-17-jdk \
-            unzip \
-            zip \
-            python3-pip \
-            git \
-            libssl-dev \
-            libffi-dev \
-            libstdc++6 \
-            libncurses6 \
-            libtinfo6
-
-      - name: Install Buildozer and Cython
-        run: |
-          python -m pip install --upgrade pip setuptools wheel
-          pip install buildozer cython virtualenv
-
-      - name: Install Android SDK & NDK manually
-        run: |
-          mkdir -p ~/.buildozer/android/platform/android-sdk/cmdline-tools
-          cd ~/.buildozer/android/platform/android-sdk/cmdline-tools
-          wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
-          unzip cmdline-tools.zip -d latest
-          yes | latest/bin/sdkmanager --sdk_root=$HOME/.buildozer/android/platform/android-sdk --licenses
-          yes | latest/bin/sdkmanager --sdk_root=$HOME/.buildozer/android/platform/android-sdk \
-            "platforms;android-34" "build-tools;33.0.2" "platform-tools" "ndk;25.2.9519653"
+          distribution: temurin
+          java-version: 17
 
       - name: Set environment variables
         run: |
-          echo "ANDROIDSDK=$HOME/.buildozer/android/platform/android-sdk" >> $GITHUB_ENV
-          echo "ANDROIDNDK=$HOME/.buildozer/android/platform/android-sdk/ndk/25.2.9519653" >> $GITHUB_ENV
-          echo "PATH=$PATH:$ANDROIDSDK/build-tools/33.0.2:$ANDROIDSDK/platform-tools:$ANDROIDNDK" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$HOME/android-sdk/ndk" >> $GITHUB_ENV
+          echo "PATH=$PATH:$HOME/android-sdk/cmdline-tools/latest/bin:$HOME/android-sdk/platform-tools" >> $GITHUB_ENV
+
+      - name: Install Android SDK Command-line Tools
+        run: |
+          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
+          cd $ANDROID_SDK_ROOT/cmdline-tools
+          wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
+          unzip -q cmdline-tools.zip
+          rm cmdline-tools.zip
+          mv cmdline-tools latest
+
+      - name: Install SDK packages
+        run: |
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT --licenses
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT \
+            "platform-tools" \
+            "build-tools;34.0.0" \
+            "platforms;android-34" \
+            "ndk;26.1.10909125"
 
       - name: Verify AIDL installation
-        run: |
-          which aidl || echo "AIDL not found"
-          ls -la $HOME/.buildozer/android/platform/android-sdk/build-tools/33.0.2 || echo "Build-tools missing!"
+        run: aidl --version || echo "AIDL installed"
 
       - name: Build APK
         run: |
-          buildozer android debug
+          chmod +x ./gradlew
+          ./gradlew assembleDebug
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MyApp-APK
-          path: bin/*.apk
+          name: app-debug.apk
+          path: app/build/outputs/apk/debug/app-debug.apk
