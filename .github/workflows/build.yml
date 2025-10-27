@@ -26,13 +26,13 @@ jobs:
             openjdk-17-jdk \
             unzip \
             zip \
-            libstdc++6 \
             python3-pip \
             git \
             libssl-dev \
             libffi-dev \
-            libncurses5 \
-            libtinfo5
+            libstdc++6 \
+            libncurses6 \
+            libtinfo6
 
       - name: Install Buildozer and Cython
         run: |
@@ -48,7 +48,8 @@ jobs:
           mkdir -p cmdline-tools/latest
           mv cmdline-tools/* cmdline-tools/latest/
           yes | cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/.buildozer/android/platform/android-sdk --licenses
-          yes | cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/.buildozer/android/platform/android-sdk "platforms;android-34" "build-tools;33.0.2" "platform-tools" "ndk;25.2.9519653"
+          yes | cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/.buildozer/android/platform/android-sdk \
+            "platforms;android-34" "build-tools;33.0.2" "platform-tools" "ndk;25.2.9519653"
 
       - name: Set environment variables
         run: |
