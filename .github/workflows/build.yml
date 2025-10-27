@@ -33,7 +33,7 @@ jobs:
           # Download and extract command line tools
           sudo wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
           sudo unzip commandlinetools-linux-11076708_latest.zip
-          rm commandlinetools-linux-11076708_latest.zip
+          sudo rm -f commandlinetools-linux-11076708_latest.zip
 
           # Set environment variables
           export ANDROID_HOME=/usr/lib/android-sdk
