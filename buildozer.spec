@@ -21,6 +21,8 @@ source.include_exts = py,png,jpg,kv,atlas
 # (str) Version will be extracted automatically from your main.py
 version.regex = __version__ = ['"](.*)['"]
 
+version.filename = main.py
+
 # (list) Application requirements
 requirements = python3,kivy
 
@@ -68,5 +70,6 @@ logcat = True
 
 # (bool) Automatically log in to adb devices
 adb = True
+
 
 
