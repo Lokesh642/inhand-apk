@@ -16,7 +16,7 @@ source.dir = .
 source.main = main.py
 
 # (str) Version number (automatically increment this for releases)
-version = 0.1
+#version = 0.1
 
 # (str) Application versioning (internal)
 version.regex = __version__ = ['"](.*)['"]
@@ -95,3 +95,4 @@ logcat = True
 
 # (bool) Automatically log in to adb devices
 adb = True
+
